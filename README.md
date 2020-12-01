@@ -1,0 +1,2 @@
+# CTWebSocket
+对Starscream封装的webSocket组件
