@@ -251,6 +251,7 @@ extension CTWebSocket: WebSocketDelegate {
             
         case .disconnected(let reason, let code):
             self.stopHeart()
+            self.wsState = .disconnected
             self.delegate?.ws_didDisConnect?(req: self.wsRequest, ws: self)
             print("websocket--reason:\(reason), code: \(code)")
             
@@ -262,20 +263,23 @@ extension CTWebSocket: WebSocketDelegate {
             
         case .viabilityChanged(let isAvailable):
             if isAvailable == false{
-                self.delegate?.ws_viabilityChanged?()
                 self.stopHeart()
+                self.wsState = .disconnected
+                self.delegate?.ws_viabilityChanged?()
             }
             
         case .reconnectSuggested(_):
             self.beginSendHeart(timeInterval: nil)
             
         case .error(let error):
-            self.delegate?.ws_connectError?(errorType: .disconnected, error: error)
             self.stopHeart()
+            self.wsState = .disconnected
+            self.delegate?.ws_connectError?(errorType: .disconnected, error: error)
             
         case .cancelled:
-            self.delegate?.ws_connectError?(errorType: .didCancel, error: nil)
             self.stopHeart()
+            self.wsState = .disconnected
+            self.delegate?.ws_connectError?(errorType: .didCancel, error: nil)
         }
     }
 }
