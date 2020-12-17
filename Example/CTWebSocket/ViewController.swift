@@ -26,6 +26,11 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
+    
+    @IBAction func clearBtnAction(_ sender: UIButton) {
+        
+        self.logTextView.text = "----------log-------->>>\n"
+    }
     @IBAction func sendBtnAction(_ sender: UIButton) {
         
         if let text = self.sendMessageField.text {
@@ -53,7 +58,7 @@ class ViewController: UIViewController {
  
         DispatchQueue.main.async {
             var log = self.logTextView.text
-            log = newLog + "\n" + (log ?? "")
+            log = ">>>" + newLog + "\n" + (log ?? "")
             self.logTextView.text = log
         }
     }
@@ -93,6 +98,6 @@ extension ViewController: CTWebSocketProtocol, CTWebSocketReceivedParse {
     }
     
     func ws_viabilityChanged() {
-        
+        self.addLog(newLog: "ws_viabilityChanged")
     }
 }
