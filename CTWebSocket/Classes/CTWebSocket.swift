@@ -44,6 +44,12 @@ import Starscream
     /// - Parameter error: 失败原因
     @objc optional func ws_connectError(errorType: CTWebSocketErrorType, error: Error?)
     
+    /// ws 发送ping超时
+    /// - Parameters:
+    ///   - req: ws的请求
+    ///   - ws: ws管理器实例
+    @objc optional func ws_didPingTimeOut(req: URLRequest?, ws: CTWebSocket)
+    
     /// ws发送消息
     /// - Parameters:
     ///   - isSuc: 是否成功
@@ -79,10 +85,14 @@ public class CTWebSocket: NSObject {
     public private(set) var wsState: CTWebSocketState = .disconnected
     /// ws的连接
     public private(set) var wsRequest: URLRequest?
+    /// 上次发送ping的时间戳
+    public private(set) var lastPingStmp: TimeInterval = 0
     /// 心跳间隔
-    var heartTimeInterval: TimeInterval? = 5
+    public var heartTimeInterval: TimeInterval? = 5
     /// 心跳计时器
     private weak var heartTimer: Timer?
+    /// ping超时时间
+    public var pingTimeOut: TimeInterval = 60
     /// 代理
     public weak var delegate: CTWebSocketProtocol?
     public weak var parseDelegate: CTWebSocketReceivedParse?
@@ -173,12 +183,30 @@ public class CTWebSocket: NSObject {
         }
         if self.socket != nil && self.wsState == .connected {
             let timer = Timer.init(timeInterval: self.heartTimeInterval!, repeats: true, block: { [weak self] (timer) in
-                self?.socket?.write(ping: Data())
+                guard let `self` = self else {return}
+                self.sendPing()
             })
             RunLoop.current.add(timer, forMode: RunLoop.Mode.default)
+            self.stopHeart()
             self.heartTimer = timer
-            timer.fire()
+            self.lastPingStmp = 0
+            self.heartTimer?.fire()
         }
+    }
+    
+    /// 发送心跳
+    private func sendPing() {
+        if socket != nil && self.wsState == .connected {
+            self.socket?.write(ping: Data())
+        }
+        let nowStmp = Date().timeIntervalSince1970
+        if self.lastPingStmp == 0 {
+            self.lastPingStmp = nowStmp
+        }else if nowStmp - self.lastPingStmp > self.pingTimeOut { // ping超时
+            self.delegate?.ws_didPingTimeOut?(req: self.wsRequest, ws: self)
+        }
+        
+        debugPrint("websocket-- send ping, last stmp:\(self.lastPingStmp)")
     }
     
     /// 停发心跳
@@ -258,10 +286,10 @@ extension CTWebSocket: WebSocketDelegate {
             debugPrint("websocket--reason:\(reason), code: \(code)")
             
         case .ping(_):
-            debugPrint("websocket--ping")
-            
+            debugPrint("websocket-- rec ping last stmp:\(self.lastPingStmp)")
         case .pong(_):
-            debugPrint("websocket--pong")
+            self.lastPingStmp = 0
+            debugPrint("websocket--rec pong")
             
         case .viabilityChanged(let isAvailable):
             if isAvailable == false{
@@ -279,7 +307,7 @@ extension CTWebSocket: WebSocketDelegate {
             self.stopHeart()
             self.wsState = .disconnected
             self.delegate?.ws_connectError?(errorType: .disconnected, error: error)
-            debugPrint("websocket--error:\(error)")
+            debugPrint("websocket--error:\(String(describing: error))")
 
         case .cancelled:
             self.stopHeart()

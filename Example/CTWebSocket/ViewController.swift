@@ -41,9 +41,12 @@ class ViewController: UIViewController {
     @IBAction func connectBtnAction(_ sender: UIButton) {
         
         if let url = wsAddressField.text {
-            let req = URLRequest.init(url: URL.init(string: url) ?? URL.init(string: "ws://123.207.136.134:9010/ajaxchattest")!)
+            var req = URLRequest.init(url: URL.init(string: url) ?? URL.init(string: "ws://123.207.136.134:9010/ajaxchattest")!)
+            req.timeoutInterval = 5
             self.ctws = CTWebSocket.init(request: req)
             self.ctws?.delegate = self
+            self.ctws?.pingTimeOut = 40
+            self.ctws?.heartTimeInterval = 10
 //            self.ctws?.parseDelegate = self
             self.addLog(newLog: "开启websoket:\(req.url?.absoluteString ?? "")")
         }
@@ -94,10 +97,14 @@ extension ViewController: CTWebSocketProtocol, CTWebSocketReceivedParse {
     }
     
     func ws_didReceivedJsonObject(object: [String : Any]?) {
-        self.addLog(newLog: "ws_didReceivedJsonObject：\(object)")
+        self.addLog(newLog: "ws_didReceivedJsonObject：\(object ?? [:])")
     }
     
     func ws_viabilityChanged() {
         self.addLog(newLog: "ws_viabilityChanged")
+    }
+
+    func ws_didPingTimeOut(req: URLRequest?, ws: CTWebSocket) {
+        self.addLog(newLog: "ws_didPingTimeOut")
     }
 }
