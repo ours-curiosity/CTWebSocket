@@ -105,6 +105,7 @@ public class CTWebSocket: NSObject {
         }else {
             self.ws_disconnect(isForce: true)
             self.socket = WebSocket.init(request: request!)
+            debugPrint("WebSocket -- create ")
             self.socket?.delegate = self
             self.wsState = .connecting
             self.socket?.connect()
@@ -199,7 +200,6 @@ public class CTWebSocket: NSObject {
     /// 解析数据
     /// - Parameter data: 二进制数据
     private func processReceiveData(data: Data) {
-        
         if self.parseDelegate != nil {
             do {
                 if let dict = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] {
@@ -238,28 +238,30 @@ extension CTWebSocket: WebSocketDelegate {
         case .text(let msg):
             self.delegate?.ws_didReceivedStringMsg?(msg: msg)
             self.processReceiveMessage(msg: msg)
-            
+            debugPrint("websocket--text:\(msg)")
+
         case .binary(let msgData):
             self.delegate?.ws_didReceivedDataMsg?(data: msgData)
             self.processReceiveData(data: msgData)
-            
+            debugPrint("websocket--binary:\(msgData.count)")
+
         case .connected(let headers):
             self.wsState = .connected
             self.beginSendHeart(timeInterval: nil)
             self.delegate?.ws_didConnect?(req: self.wsRequest, ws: self)
-            print("websocket--connected: \(headers)")
+            debugPrint("websocket--connected: \(headers)")
             
         case .disconnected(let reason, let code):
             self.stopHeart()
             self.wsState = .disconnected
             self.delegate?.ws_didDisConnect?(req: self.wsRequest, ws: self)
-            print("websocket--reason:\(reason), code: \(code)")
+            debugPrint("websocket--reason:\(reason), code: \(code)")
             
         case .ping(_):
-            print("websocket--ping")
+            debugPrint("websocket--ping")
             
         case .pong(_):
-            print("websocket--pong")
+            debugPrint("websocket--pong")
             
         case .viabilityChanged(let isAvailable):
             if isAvailable == false{
@@ -267,19 +269,23 @@ extension CTWebSocket: WebSocketDelegate {
                 self.wsState = .disconnected
                 self.delegate?.ws_viabilityChanged?()
             }
-            
-        case .reconnectSuggested(_):
+            debugPrint("websocket--viabilityChanged:\(isAvailable)")
+
+        case .reconnectSuggested(let isAvailable):
             self.beginSendHeart(timeInterval: nil)
-            
+            debugPrint("websocket--reconnectSuggested:\(isAvailable)")
+
         case .error(let error):
             self.stopHeart()
             self.wsState = .disconnected
             self.delegate?.ws_connectError?(errorType: .disconnected, error: error)
-            
+            debugPrint("websocket--error:\(error)")
+
         case .cancelled:
             self.stopHeart()
             self.wsState = .disconnected
             self.delegate?.ws_connectError?(errorType: .didCancel, error: nil)
+            debugPrint("websocket--cancelled")
         }
     }
 }
