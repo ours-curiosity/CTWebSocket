@@ -186,7 +186,7 @@ public class CTWebSocket: NSObject {
                 guard let `self` = self else {return}
                 self.sendPing()
             })
-            RunLoop.current.add(timer, forMode: RunLoop.Mode.default)
+            RunLoop.current.add(timer, forMode: RunLoop.Mode.common)
             self.stopHeart()
             self.heartTimer = timer
             self.lastPingStmp = 0

@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
     s.name             = 'CTWebSocket'
-    s.version          = '0.1.1'
+    s.version          = '0.2.0'
     s.summary          = 'CTWebSocket 是对 Starscream 的封装.'
     
     # This description is used to generate tags and improve search results.
